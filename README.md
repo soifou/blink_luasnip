@@ -1,55 +1,43 @@
-# cmp_luasnip
+# blink_luasnip
 
-[luasnip](https://github.com/L3MON4D3/LuaSnip) completion source for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp)
-
+[luasnip](https://github.com/L3MON4D3/LuaSnip) completion source for [blink.cmp](https://github.com/Saghen/blink.cmp)
+Forked from [cmp_luasnip](https://github.com/saadparwaiz1/cmp_luasnip)
+Considering you have Luasnip and blink.cmp already setup, add this to your configuration of the latter (example using lazy.nvim):
 ```lua
--- Installation
-use { 'L3MON4D3/LuaSnip' }
-use {
-  'hrsh7th/nvim-cmp',
-  config = function ()
-    require'cmp'.setup {
-    snippet = {
-      expand = function(args)
-        require'luasnip'.lsp_expand(args.body)
-      end
-    },
+retun {
+    {
+  "saghen/blink.cmp",
 
+  dependencies = {
+    "L3MON4D3/LuaSnip",
+    "leiserfg/blink_luasnip",
+  },
+  opts = {
+    --  This one is not mandatory but I think it's a good idea to use the same snippet provider so you use the same 
+    --  keybindings regardless of how was the snippet expanded
+    accept = {
+      expand_snippet = require("luasnip").lsp_expand,
+    },
+    -- Inscribe luasnip and add it to the list of providers
     sources = {
-      { name = 'luasnip' },
-      -- more sources
-    },
-  }
-  end
+        completion = {
+          enabled_providers = { "lsp", "path", "luasnip", "buffer" },
+        },
+
+     providers = {
+        luasnip = {
+            name = "luasnip",
+            module = "blink_luasnip",
+
+            score_offset = -3,
+
+            opts = {
+                use_show_condition = false, -- disables filtering completion candidates
+                show_autosnippets = true, 
+            },
+        },
+      },
+      },
+    ...
 }
-use { 'saadparwaiz1/cmp_luasnip' }
 ```
-
-To disable filtering completion candidates by snippet's `show_condition`
-use the following options in `sources`:
-
-```lua
-sources = {
-  { name = 'luasnip', option = { use_show_condition = false } },
-  -- more sources
-},
-```
-
-This can also be configured on per-buffer basis as described in cmp's README
-[here](https://github.com/hrsh7th/nvim-cmp#how-to-disable-nvim-cmp-on-the-specific-buffer)
-and [here](https://github.com/hrsh7th/nvim-cmp#sources-type-tablecmpsourceconfig).
-
-The same way you can de-/activate whether autosnippets should be included in the
-completion list or not (including them can be a bit problematic since when you
-select the entry, the text gets inserted and the snippet automatically
-triggers). This option defaults to `false` to be backwards compatible. Example:
-
-```lua
-sources = {
-  { name = 'luasnip', option = { show_autosnippets = true } },
-  -- more sources
-},
-```
-
-Hint: If you want to just hide some autosnippets consider the `hidden` option of
-luaSnip
