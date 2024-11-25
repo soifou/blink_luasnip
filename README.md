@@ -1,7 +1,9 @@
 # blink_luasnip
 
 [luasnip](https://github.com/L3MON4D3/LuaSnip) completion source for [blink.cmp](https://github.com/Saghen/blink.cmp)
+
 Forked from [cmp_luasnip](https://github.com/saadparwaiz1/cmp_luasnip)
+
 Considering you have Luasnip and blink.cmp already setup, add this to your configuration of the latter (example using lazy.nvim):
 ```lua
 retun {
