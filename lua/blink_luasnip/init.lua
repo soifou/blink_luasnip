@@ -47,12 +47,19 @@ end
 
 local function get_snippet_body(snip)
   local body = {}
+  local lines = 1
   for _, node in ipairs(snip.nodes) do
     if type(node.static_text) == "table" then
-      body[#body + 1] = table.concat(node.static_text, "\n")
+      local text = table.concat(node.static_text, "\n")
+      local count = select(2, text:gsub("\n", "\n"))
+      lines = lines + count
+      body[#body + 1] = text
     end
   end
-  return #body == 1 and snip.trigger or table.concat(body, "")
+  return {
+    text = #body == 1 and snip.trigger or table.concat(body, ""),
+    lines = lines,
+  }
 end
 
 local function get_documentation(snip, data)
@@ -101,6 +108,7 @@ function source:get_completions(ctx, callback)
               word = snip.trigger,
               label = snip.trigger,
               kind = vim.lsp.protocol.CompletionItemKind.Snippet,
+              insertTextFormat = vim.lsp.protocol.InsertTextFormat.Snippet,
               data = {
                 priority = snip.effective_priority or 1000, -- Default priority is used for old luasnip versions
                 filetype = ft,
@@ -111,10 +119,11 @@ function source:get_completions(ctx, callback)
             }
 
             if self.config.show_ghost_text then
-              complete_opts = vim.tbl_extend("error", complete_opts, {
-                insertTextFormat = vim.lsp.protocol.InsertTextFormat.Snippet,
+              local body = get_snippet_body(snip)
+              complete_opts = vim.tbl_deep_extend("error", complete_opts, {
                 insertTextMode = INSERT_TEXT_MODE_ASIS,
-                insertText = get_snippet_body(snip),
+                insertText = body.text,
+                data = { body_lines = body.lines },
               })
             end
 
@@ -166,15 +175,18 @@ function source:execute(ctx, completion_item)
     snip = snip:get_pattern_expand_helper()
   end
 
-  local cursor = ctx.cursor
+  local cursor = require("luasnip.util.util").get_cursor_0ind()
   local line = require("luasnip.util.util").get_current_line_to_cursor()
-
-  cursor[1] = cursor[1] - 1
   local expand_params = snip:matches(line)
+
+  local from_line = cursor[1]
+  if completion_item.insertText ~= nil then
+    from_line = from_line - (completion_item.data.body_lines - 1)
+  end
 
   local clear_region = {
     from = {
-      cursor[1],
+      from_line,
       ctx.bounds.start_col - 1,
     },
     to = cursor,
@@ -186,7 +198,7 @@ function source:execute(ctx, completion_item)
       if expand_params.trigger ~= nil then
         clear_region = {
           from = {
-            cursor[1],
+            from_line,
             cursor[2] - #expand_params.trigger,
           },
           to = cursor,
